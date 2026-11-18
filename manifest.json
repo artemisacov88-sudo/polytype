@@ -1,0 +1,9 @@
+{
+  "id": "polytype",
+  "name": "PolyType",
+  "version": "0.1.0",
+  "minAppVersion": "1.5.0",
+  "description": "Local multilingual typing suggestions for Obsidian.",
+  "author": "PolyType",
+  "isDesktopOnly": false
+}
