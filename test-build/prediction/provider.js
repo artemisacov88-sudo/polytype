@@ -1,0 +1,11 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.EmptyPredictionProvider = void 0;
+/** Empty local provider placeholder. Prediction algorithms are intentionally not implemented. */
+class EmptyPredictionProvider {
+    async predict() {
+        return [];
+    }
+}
+exports.EmptyPredictionProvider = EmptyPredictionProvider;
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoicHJvdmlkZXIuanMiLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyIuLi8uLi9zcmMvcHJlZGljdGlvbi9wcm92aWRlci50cyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiOzs7QUFFQSxpR0FBaUc7QUFDakcsTUFBYSx1QkFBdUI7SUFDbkMsS0FBSyxDQUFDLE9BQU87UUFDWixPQUFPLEVBQUUsQ0FBQztJQUNYLENBQUM7Q0FDRDtBQUpELDBEQUlDIiwic291cmNlc0NvbnRlbnQiOlsiaW1wb3J0IHR5cGUgeyBQcmVkaWN0aW9uUHJvdmlkZXIgfSBmcm9tIFwiLi90eXBlc1wiO1xuXG4vKiogRW1wdHkgbG9jYWwgcHJvdmlkZXIgcGxhY2Vob2xkZXIuIFByZWRpY3Rpb24gYWxnb3JpdGhtcyBhcmUgaW50ZW50aW9uYWxseSBub3QgaW1wbGVtZW50ZWQuICovXG5leHBvcnQgY2xhc3MgRW1wdHlQcmVkaWN0aW9uUHJvdmlkZXIgaW1wbGVtZW50cyBQcmVkaWN0aW9uUHJvdmlkZXIge1xuXHRhc3luYyBwcmVkaWN0KCk6IFByb21pc2U8cmVhZG9ubHkgc3RyaW5nW10+IHtcblx0XHRyZXR1cm4gW107XG5cdH1cbn1cbiJdfQ==

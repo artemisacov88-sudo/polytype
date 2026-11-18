@@ -1,16 +1,25 @@
+
 import type { LanguageId, LanguageModule } from "./types";
 
-const languageNames: Record<LanguageId, string> = {
-	ru: "Русский",
-	en: "English",
-	de: "Deutsch",
-	ro: "Română",
+import { russian } from "./modules/russian";
+import { english } from "./modules/english";
+import { german } from "./modules/german";
+import { romanian } from "./modules/romanian";
+
+const languages: Record<LanguageId, LanguageModule> = {
+	ru: russian,
+	en: english,
+	de: german,
+	ro: romanian,
 };
 
-/** Lists supported language identifiers; language rules can be registered here later. */
 export function getSupportedLanguages(): Array<Pick<LanguageModule, "id" | "displayName">> {
-	return (Object.entries(languageNames) as Array<[LanguageId, string]>).map(([id, displayName]) => ({
+	return Object.values(languages).map(({ id, displayName }) => ({
 		id,
 		displayName,
 	}));
+}
+
+export function getLanguageModule(id: LanguageId): LanguageModule {
+	return languages[id];
 }

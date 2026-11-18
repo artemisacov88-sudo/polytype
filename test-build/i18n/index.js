@@ -1,0 +1,11 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.getStrings = getStrings;
+const strings = {
+    settings: "Настройки PolyType",
+    language: "Язык обработки текста",
+};
+function getStrings(_language) {
+    return strings;
+}
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiaW5kZXguanMiLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyIuLi8uLi9zcmMvaTE4bi9pbmRleC50cyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiOztBQVFBLGdDQUVDO0FBUEQsTUFBTSxPQUFPLEdBQUc7SUFDZixRQUFRLEVBQUUsb0JBQW9CO0lBQzlCLFFBQVEsRUFBRSx1QkFBdUI7Q0FDakMsQ0FBQztBQUVGLFNBQWdCLFVBQVUsQ0FBQyxTQUFzQjtJQUNoRCxPQUFPLE9BQU8sQ0FBQztBQUNoQixDQUFDIiwic291cmNlc0NvbnRlbnQiOlsiXG5pbXBvcnQgdHlwZSB7IExhbmd1YWdlSWQgfSBmcm9tIFwiLi4vbGFuZ3VhZ2UvdHlwZXNcIjtcblxuY29uc3Qgc3RyaW5ncyA9IHtcblx0c2V0dGluZ3M6IFwi0J3QsNGB0YLRgNC+0LnQutC4IFBvbHlUeXBlXCIsXG5cdGxhbmd1YWdlOiBcItCv0LfRi9C6INC+0LHRgNCw0LHQvtGC0LrQuCDRgtC10LrRgdGC0LBcIixcbn07XG5cbmV4cG9ydCBmdW5jdGlvbiBnZXRTdHJpbmdzKF9sYW5ndWFnZT86IExhbmd1YWdlSWQpIHtcblx0cmV0dXJuIHN0cmluZ3M7XG59XG5cbiJdfQ==

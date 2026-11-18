@@ -1,0 +1,7 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.DEFAULT_SETTINGS = void 0;
+exports.DEFAULT_SETTINGS = {
+    language: "en",
+};
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoic2V0dGluZ3MuanMiLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyIuLi9zcmMvc2V0dGluZ3MudHMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6Ijs7O0FBTWEsUUFBQSxnQkFBZ0IsR0FBcUI7SUFDakQsUUFBUSxFQUFFLElBQUk7Q0FDZCxDQUFDIiwic291cmNlc0NvbnRlbnQiOlsiaW1wb3J0IHR5cGUgeyBMYW5ndWFnZUlkIH0gZnJvbSBcIi4vbGFuZ3VhZ2UvdHlwZXNcIjtcblxuZXhwb3J0IGludGVyZmFjZSBQb2x5VHlwZVNldHRpbmdzIHtcblx0bGFuZ3VhZ2U6IExhbmd1YWdlSWQ7XG59XG5cbmV4cG9ydCBjb25zdCBERUZBVUxUX1NFVFRJTkdTOiBQb2x5VHlwZVNldHRpbmdzID0ge1xuXHRsYW5ndWFnZTogXCJlblwiLFxufTtcbiJdfQ==

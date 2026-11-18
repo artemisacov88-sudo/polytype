@@ -27,20 +27,38 @@ class PolyTypeSettingTab extends PluginSettingTab {
 		const { containerEl } = this;
 		containerEl.empty();
 		const strings = getStrings(this.plugin.settings.language);
+
 		containerEl.createEl("h2", { text: strings.settings });
+
 		new Setting(containerEl)
-			.setName(strings.language)
+			.setName("Режим определения языка")
 			.addDropdown((dropdown) => {
-				for (const language of getSupportedLanguages()) {
-					dropdown.addOption(language.id, language.displayName);
-				}
 				dropdown
-					.setValue(this.plugin.settings.language)
+					.addOption("auto", "Автоматический")
+					.addOption("manual", "Ручной")
+					.setValue(this.plugin.settings.languageMode)
 					.onChange(async (value) => {
-						this.plugin.settings.language = value as LanguageId;
+						this.plugin.settings.languageMode = value as "auto" | "manual";
 						await this.plugin.saveSettings();
 						this.display();
 					});
 			});
+
+		if (this.plugin.settings.languageMode === "manual") {
+			new Setting(containerEl)
+				.setName(strings.language)
+				.addDropdown((dropdown) => {
+					for (const language of getSupportedLanguages()) {
+						dropdown.addOption(language.id, language.displayName);
+					}
+					dropdown
+						.setValue(this.plugin.settings.language)
+						.onChange(async (value) => {
+							this.plugin.settings.language = value as LanguageId;
+							await this.plugin.saveSettings();
+							this.display();
+						});
+				});
+		}
 	}
 }
