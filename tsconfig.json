@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    "baseUrl": ".",
     "inlineSourceMap": true,
     "inlineSources": true,
     "module": "ESNext",
@@ -11,8 +10,14 @@
     "noUnusedParameters": true,
     "strict": true,
     "target": "ES2018",
-    "lib": ["DOM", "ES2018"],
-    "skipLibCheck": true
+    "lib": [
+      "DOM",
+      "ES2018"
+    ],
+    "skipLibCheck": true,
+    "resolveJsonModule": true
   },
-  "include": ["src/**/*.ts"]
+  "include": [
+    "src/**/*.ts"
+  ]
 }

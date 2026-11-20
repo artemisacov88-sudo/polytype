@@ -2,3 +2,7 @@ node_modules/
 .DS_Store
 main.js
 *.map
+/data/english-words.json
+/data/english-collocations.json
+/local-corpora/
+/data/experiments/

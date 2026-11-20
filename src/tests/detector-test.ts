@@ -1,3 +1,4 @@
+import assert from "node:assert/strict";
 import { detectLanguage } from "../language/detector";
 
 const tests = [
@@ -8,20 +9,9 @@ const tests = [
 	{ text: "12345", expected: null },
 ] as const;
 
-let passed = 0;
-
 for (const test of tests) {
 	const result = detectLanguage(test.text);
-	const ok = result === test.expected;
-
-	if (ok) passed++;
-
-	console.log(
-		ok ? "OK" : "ОШИБКА",
-		`Текст: "${test.text}"`,
-		`Ожидалось: ${test.expected}`,
-		`Получено: ${result}`,
-	);
+	assert.equal(result, test.expected, `language detection for ${JSON.stringify(test.text)}`);
 }
 
-console.log(`\nРезультат: ${passed}/${tests.length} тестов пройдено`);
+console.log(`Language detector tests passed (${tests.length} cases).`);
