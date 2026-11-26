@@ -27,6 +27,7 @@ async function main(): Promise<void> {
 	let binaryReads = 0;
 	let manifestReads = 0;
 	let statisticsReads = 0;
+	let parserYields = 0;
 	const loader = new NGramModelLoader(async (path) => {
 		assert.equal(path, "data/experiments/moderate/binary/model.ptng");
 		binaryReads++;
@@ -39,6 +40,9 @@ async function main(): Promise<void> {
 		assert.equal(path, "data/experiments/moderate/binary/context-stats.ptgs");
 		statisticsReads++;
 		return statisticsBytes;
+	}, undefined, undefined, async () => {
+		parserYields++;
+		await new Promise<void>((resolve) => setImmediate(resolve));
 	});
 	assert.equal(binaryReads, 0, "model is lazy before first use");
 	const loadStart = performance.now();
@@ -49,6 +53,7 @@ async function main(): Promise<void> {
 	assert.equal(binaryReads, 1, "parallel callers share the binary read");
 	assert.equal(manifestReads, 1, "parallel callers share the manifest read");
 	assert.equal(statisticsReads, 1, "parallel callers share the statistics read");
+	assert.ok(parserYields > 0, "large binary parsing yields to the host event loop");
 	const beforeSearchMemory = process.memoryUsage();
 	const beforeSearch = performance.now();
 	for (let index = 0; index < 100_000; index++) model.lookupContinuations(["i", "would", "like"], "t", 5);
@@ -135,6 +140,36 @@ async function main(): Promise<void> {
 	assert.ok(comparison.baseline.length > 0);
 	assert.ok(comparison.experimental.includes("to"));
 	assert.equal(comparison.error, undefined);
+	assert.ok((await provider.predict({ ...request, maxSuggestions: 2 })).length <= 2,
+		"the experimental prediction route respects the configured suggestion count");
+
+	const loadStandardAsset = (asset: PredictionDataAsset) =>
+		Promise.resolve(readFileSync(join(root, "src/prediction/data", asset), "utf8"));
+	const missingModelErrors: string[] = [];
+	const missingModelProvider = new ExperimentalBinaryPredictionProvider(
+		loadStandardAsset,
+		async () => { throw new Error("ENOENT: model.ptng"); },
+		async () => manifestText,
+		(message) => missingModelErrors.push(message),
+	);
+	const missingModelResult = await missingModelProvider.compare(request);
+	assert.deepEqual(missingModelResult.experimental, missingModelResult.baseline,
+		"a missing binary model preserves ordinary Dictionary provider predictions");
+	assert.match(missingModelResult.error ?? "", /ENOENT/);
+	assert.equal(missingModelErrors.length, 1);
+
+	const corruptedBinary = new Uint8Array(sourceBytes.slice(0));
+	corruptedBinary[corruptedBinary.length - 1] ^= 1;
+	const corruptModelProvider = new ExperimentalBinaryPredictionProvider(
+		loadStandardAsset,
+		async () => corruptedBinary.buffer,
+		async () => manifestText,
+	);
+	const corruptModelResult = await corruptModelProvider.compare(request);
+	assert.deepEqual(corruptModelResult.experimental, corruptModelResult.baseline,
+		"a checksum-invalid binary model preserves ordinary Dictionary provider predictions");
+	assert.match(corruptModelResult.error ?? "", /SHA-256/);
+
 	const smoothed = await provider.compare(request, "interpolated-absolute-discount");
 	assert.equal(smoothed.algorithm, "interpolated-absolute-discount");
 	assert.ok(smoothed.experimental.length > 0);

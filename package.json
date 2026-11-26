@@ -12,7 +12,9 @@
     "oanc:prepare": "python3 scripts/corpus/prepare_oanc.py",
     "oanc:train": "python3 scripts/training/build_ngrams.py",
     "oanc:benchmark": "node --expose-gc scripts/evaluation/benchmark_formats.mjs",
-    "oanc:evaluate": "python3 scripts/evaluation/evaluate_model.py"
+    "oanc:evaluate": "python3 scripts/evaluation/evaluate_model.py",
+    "multilingual:evaluate": "node scripts/evaluation/evaluate-multilingual.mjs",
+    "multilingual:benchmark": "node scripts/evaluation/benchmark-multilingual-runtime.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

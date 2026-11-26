@@ -1,0 +1,50 @@
+{
+  "format_version": 1,
+  "corpus": "Tatoeba Romanian 2026-11-21",
+  "configuration": "moderate",
+  "min_count": 2,
+  "max_successors_per_context": 50,
+  "vocabulary_count": 18774,
+  "record_counts": {
+    "1": 9677,
+    "2": 14097,
+    "3": 15826,
+    "4": 7852
+  },
+  "dictionary_file": "words.json",
+  "dictionary_bytes": 829392,
+  "dictionary_sha256": "b97e703d51a2d77858f8d2ea2428a2c2c44968900c79bec98547252e3887997f",
+  "json_bytes": 1119001,
+  "binary_bytes": 892934,
+  "json_export_seconds": 0.376,
+  "binary_export_seconds": 0.076,
+  "json_sha256": "29501a55ff5ee442c39527cf0a552e5685da36de03dc955c4fd59cd7dd45eca8",
+  "binary_sha256": "550a2ef58575c7ce43422234a3bfc85e0a53b83384cfe90847dfe66ac1847218",
+  "language": "ro",
+  "context_statistics_file": "binary/context-stats.ptgs",
+  "context_statistics_version": 1,
+  "context_statistics_context_counts": {
+    "1": 3841,
+    "2": 8160,
+    "3": 6208
+  },
+  "context_statistics_bytes": 375932,
+  "context_statistics_seconds": 0.078,
+  "context_statistics_sha256": "e1911ecdac2ff47809d5c7298973f6fc08e314b1df5487587fb0ef974dc3697c",
+  "data_license": "CC BY 2.0 FR",
+  "license_url": "https://creativecommons.org/licenses/by/2.0/fr/",
+  "source_corpus": "Tatoeba",
+  "source_release": "weekly exports with Last-Modified 2026-11-21 UTC",
+  "source_url": "https://downloads.tatoeba.org/exports/sentences_detailed.tar.bz2",
+  "source_archive_sha256": "98956f8d7c01e3a1e315d89e4ba0b47772421343306bdf3902bb2ccd45bfd950",
+  "attribution_file": "ATTRIBUTION.txt",
+  "training_sentences": 33307,
+  "training_tokens": 226992,
+  "evaluation_split_policy": "Choose the highest validation Top-5 accuracy; break ties by smaller model bytes. Test split is evaluated once afterward and is never used for selection.",
+  "selected_validation_metrics": {
+    "queries": 10000,
+    "coverage": 0.9976,
+    "candidate_recall": 0.9426,
+    "top5_accuracy": 0.8425
+  }
+}

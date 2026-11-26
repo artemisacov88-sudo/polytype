@@ -1,4 +1,4 @@
-import type { PredictionProvider, PredictionRequest } from "./types";
+import { getMaxSuggestions, type PredictionProvider, type PredictionRequest } from "./types";
 import { englishCorpus } from "./corpus/english";
 import { NGramModel } from "./ngram";
 import { english } from "../language/modules/english";
@@ -64,6 +64,25 @@ export class DictionaryPredictionProvider implements PredictionProvider {
 	async getEnglishPrefixCandidates(prefix: string, limit = 50): Promise<string[]> {
 		const index = await this.getEnglishWordIndex();
 		return index?.suggest(prefix, limit) ?? [];
+	}
+
+	getContextEvidence(
+		context: readonly string[],
+		word: string,
+	): { count: number; contextFrequency: number; contextLength: number } | undefined {
+		const normalizedWord = english.rules.normalizeWord(word);
+		for (let length = Math.min(3, context.length); length > 0; length--) {
+			const predictions = englishModel.predictScored(context.slice(-length), "", 100);
+			const match = predictions.find((prediction) => prediction.word === normalizedWord);
+			if (match) {
+				return {
+					count: match.count,
+					contextFrequency: match.contextCount,
+					contextLength: match.contextLength,
+				};
+			}
+		}
+		return undefined;
 	}
 
 	private getEnglishCollocations(): Promise<CollocationData | null> {
@@ -149,11 +168,32 @@ export class DictionaryPredictionProvider implements PredictionProvider {
 			}
 
 			return rankCandidates([...evidence.values()], wordIndex?.maxFrequency ?? 0)
-				.slice(0, 5)
+				.slice(0, getMaxSuggestions(request))
 				.map(({ word }) => word);
                 }
 		return [];
         }
+}
+
+/** Explicit opt-in wrapper that preserves the ordinary provider as fallback. */
+export class OptInPredictionProvider implements PredictionProvider {
+	constructor(
+		private readonly standardProvider: PredictionProvider,
+		private readonly optionalProvider: PredictionProvider,
+		private readonly isOptionalEnabled: () => boolean,
+	) {}
+
+	async predict(request: PredictionRequest): Promise<readonly string[]> {
+		if (request.language !== "en" || !this.isOptionalEnabled()) {
+			return this.standardProvider.predict(request);
+		}
+		try {
+			return await this.optionalProvider.predict(request);
+		} catch (error) {
+			console.error("[PolyType] Optional prediction provider failed; using standard suggestions", error);
+			return this.standardProvider.predict(request);
+		}
+	}
 }
 
 function isWordIndexEntries(value: unknown): value is WordIndexEntry[] {

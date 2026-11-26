@@ -1,0 +1,50 @@
+{
+  "format_version": 1,
+  "corpus": "Tatoeba Russian 2026-11-21",
+  "configuration": "moderate",
+  "min_count": 2,
+  "max_successors_per_context": 50,
+  "vocabulary_count": 143101,
+  "record_counts": {
+    "1": 85156,
+    "2": 193425,
+    "3": 377276,
+    "4": 270504
+  },
+  "dictionary_file": "words.json",
+  "dictionary_bytes": 7673734,
+  "dictionary_sha256": "de7fa0a08a3461bbf0c4954dd0da48e1c90f37543450ad3098644f264c0d2df7",
+  "json_bytes": 25329459,
+  "binary_bytes": 18151137,
+  "json_export_seconds": 7.718,
+  "binary_export_seconds": 1.518,
+  "json_sha256": "d88f5c818291fc374710b999a4622965691b6acf2418349036a3fcc8a32fc24f",
+  "binary_sha256": "0d2506f7432d0485c69ca53294a3d0357cd2e5bea183378d289f70f51449d2c8",
+  "language": "ru",
+  "context_statistics_file": "binary/context-stats.ptgs",
+  "context_statistics_version": 1,
+  "context_statistics_context_counts": {
+    "1": 41175,
+    "2": 162081,
+    "3": 178672
+  },
+  "context_statistics_bytes": 7233264,
+  "context_statistics_seconds": 1.284,
+  "context_statistics_sha256": "7a4cc8511651d5dd5a02d62c9dc603f8965deadb454a150cd72d6f8d3cbe8791",
+  "data_license": "CC BY 2.0 FR",
+  "license_url": "https://creativecommons.org/licenses/by/2.0/fr/",
+  "source_corpus": "Tatoeba",
+  "source_release": "weekly exports with Last-Modified 2026-11-21 UTC",
+  "source_url": "https://downloads.tatoeba.org/exports/sentences_detailed.tar.bz2",
+  "source_archive_sha256": "98956f8d7c01e3a1e315d89e4ba0b47772421343306bdf3902bb2ccd45bfd950",
+  "attribution_file": "ATTRIBUTION.txt",
+  "training_sentences": 970999,
+  "training_tokens": 5548566,
+  "evaluation_split_policy": "Choose the highest validation Top-5 accuracy; break ties by smaller model bytes. Test split is evaluated once afterward and is never used for selection.",
+  "selected_validation_metrics": {
+    "queries": 10000,
+    "coverage": 0.9998,
+    "candidate_recall": 0.9405,
+    "top5_accuracy": 0.7839
+  }
+}

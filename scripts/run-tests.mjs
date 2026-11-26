@@ -14,8 +14,21 @@ const tests = [
 	"src/tests/ranking-test.ts",
 	"src/tests/collocations-test.ts",
 	"src/tests/provider-test.ts",
+	"src/tests/multilingual-provider-test.ts",
+	"src/tests/spelling-core-test.ts",
+	"src/tests/spelling-engine-test.ts",
+	"src/tests/spelling-tooltip-test.ts",
+	"src/tests/spelling-audit-test.ts",
 	"src/tests/language-test.ts",
 	"src/tests/detector-test.ts",
+	"src/tests/presentation-test.ts",
+	"src/tests/settings-test.ts",
+	"src/tests/editor-tail-test.ts",
+	"src/tests/editor-suggest-routing-test.ts",
+	"src/tests/latest-suggestion-requests-test.ts",
+	"src/tests/personal-model-test.ts",
+	"src/tests/personal-storage-test.ts",
+	"src/tests/personal-learning-integration-test.ts",
 ];
 
 async function main() {
@@ -49,7 +62,7 @@ async function main() {
 		await rm(outputDirectory, { recursive: true, force: true });
 	}
 
-	const pythonTests = spawnSync("python3", ["-m", "unittest", "discover", "-s", "scripts/tests", "-v"], {
+	const pythonTests = spawnSync("python3", ["-B", "-m", "unittest", "discover", "-s", "scripts/tests", "-v"], {
 		cwd: root,
 		stdio: "inherit",
 	});

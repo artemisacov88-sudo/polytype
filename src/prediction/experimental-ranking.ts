@@ -10,9 +10,9 @@ export interface RankingWeights {
 
 export const DEFAULT_EXPERIMENTAL_WEIGHTS: RankingWeights = {
 	probability: 1,
-	frequency: 0,
+	frequency: 0.3,
 	contextReliability: 0.1,
-	collocation: 0.15,
+	collocation: 0.05,
 };
 
 /** Ranks only the supplied pool; candidate generation remains independent. */

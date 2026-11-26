@@ -18,4 +18,13 @@ for (const test of tests) {
 	);
 }
 
+assert.deepEqual(getLanguageModule("ru").rules.tokenize("Ёлка").map((word) =>
+	getLanguageModule("ru").rules.normalizeWord(word)), ["елка"]);
+assert.deepEqual(getLanguageModule("de").rules.tokenize("Grüße").map((word) =>
+	getLanguageModule("de").rules.normalizeWord(word)), ["grüße"]);
+assert.deepEqual(getLanguageModule("ro").rules.tokenize("Ştiinţă").map((word) =>
+	getLanguageModule("ro").rules.normalizeWord(word)), ["știință"]);
+assert.deepEqual(getLanguageModule("ro").rules.tokenize("S\u0326tiin\u0163a").map((word) =>
+	getLanguageModule("ro").rules.normalizeWord(word)), ["știința"]);
+
 console.log("Language module tests passed (ru, en, de, ro).");

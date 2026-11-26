@@ -11,7 +11,7 @@ export const russian: LanguageModule = {
 		},
 
 		normalizeWord(word: string): string {
-			return word.toLocaleLowerCase("ru-RU").replace(/ё/g, "е");
+			return word.normalize("NFC").toLocaleLowerCase("ru-RU").replace(/ё/g, "е");
 		},
 	},
 };

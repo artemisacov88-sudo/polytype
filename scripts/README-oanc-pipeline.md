@@ -1,6 +1,25 @@
 # OANC training experiments
 
-Training is offline and does not affect the Obsidian runtime or Provider.
+PTNG/OANC is experimental and is not the normal prediction model. The standard
+English provider remains dictionary-backed for EditorSuggest; it is not
+silently switched to OANC, and OANC PTNG/PTGS assets are not in the production
+package. Separately licensed Russian, German, and Romanian PTNG/PTGS assets
+are included as language modules and are described in
+`README-multilingual-pipeline.md`.
+
+## Opt-in use and fallback
+
+- The **Experimental OANC model** setting is the opt-in for English
+  EditorSuggest predictions. It remains disabled by default, reads manually
+  placed PTNG/PTGS assets, and falls back to the standard Dictionary provider
+  if they are unavailable or invalid. Personalization wraps whichever
+  baseline the user selected.
+- The **Compare experimental OANC Binary predictions at cursor** command is a
+  separate diagnostic. It compares the normal provider with the experimental
+  model when invoked; it does not enable or persist experimental predictions.
+- Do not add the large experiment files to the normal package automatically.
+
+Training is offline and does not affect the Obsidian runtime or normal Provider.
 
 ## Source and privacy
 
@@ -17,9 +36,27 @@ Current source release: OANC GrAF, release `datasets-2026-09-25`.
 
 The model format uses magic `PTNG`, little-endian version and per-order record counts, a length-prefixed UTF-8 vocabulary, and sorted records containing order, word IDs, and counts. The moderate experiment also exports `PTGS` full train-only unigram/context totals and continuation type counts. Pruned counts are never used as full context totals: retained mass is discounted, and all omitted mass is backed off. The manifest contains SHA-256 checksums for both assets; loaders validate hashes, IDs, counts, lengths, versions, sorted records, and trailing bytes. Experimental data is not imported into the production package.
 
-## Obsidian comparison command
+## Obsidian integration
 
-The plugin adds **Compare experimental OANC Binary predictions at cursor**. It runs only when invoked, only for English, and shows the current result beside longest-context and IAD variants. It does not change the EditorSuggest provider or save a setting. The loader reads `data/experiments/moderate/binary/model.ptng`, `data/experiments/moderate/binary/context-stats.ptgs`, and `data/experiments/moderate/manifest.json` through the Vault Adapter. These generated files are intentionally absent from production `dataFiles`; to compare in another Obsidian plugin directory, copy the Binary, context stats, and manifest. Missing or invalid assets fall back to the existing predictions.
+The **Experimental OANC model** setting is the only way to opt the normal
+EditorSuggest path into the binary provider. It is disabled by default, applies
+only to English, and is persisted in plugin settings. When enabled, the loader
+reads these files from the plugin directory through Obsidian's Vault Adapter:
+
+- `data/experiments/moderate/binary/model.ptng`
+- `data/experiments/moderate/binary/context-stats.ptgs`
+- `data/experiments/moderate/manifest.json`
+
+Copy all three files into that relative directory in the installed plugin
+folder. The production build does not copy or package them. Missing, invalid,
+or incompatible model files leave ordinary `DictionaryPredictionProvider`
+predictions available; the experimental loader reports a model error once
+until a later load succeeds.
+
+The **Compare experimental OANC Binary predictions at cursor** command remains
+a separate diagnostic. It compares the dictionary baseline with longest
+context and IAD results only when invoked; it does not toggle or persist the
+EditorSuggest setting.
 
 ## Notes
 

@@ -3,7 +3,12 @@ import { generateCandidates } from "../prediction/candidate-generation";
 import { absoluteDiscountProbability, interpolatedAbsoluteDiscount } from "../prediction/context-probability";
 import { interpolatedPrunedAbsoluteDiscount, preparePrunedContextDistribution } from "../prediction/backoff-smoothing";
 import { collocationFeature } from "../prediction/collocation-scoring";
-import { rankExperimentalCandidates } from "../prediction/experimental-ranking";
+import { DEFAULT_EXPERIMENTAL_WEIGHTS, rankExperimentalCandidates } from "../prediction/experimental-ranking";
+import { OANC_ABSOLUTE_DISCOUNT } from "../prediction/experimental-binary-provider";
+
+assert.deepEqual(DEFAULT_EXPERIMENTAL_WEIGHTS,
+	{ probability: 1, frequency: 0.3, contextReliability: 0.1, collocation: 0.05 });
+assert.equal(OANC_ABSOLUTE_DISCOUNT, 0.75);
 
 const context = {
 	counts: new Map([["a", 4], ["b", 2], ["c", 2]]),
@@ -31,10 +36,10 @@ assert.ok(Math.abs(smoothed.reduce((sum, p) => sum + p, 0) - 1) < 1e-12,
 	"all dropped/pruned probability mass backs off and remains normalized");
 
 const candidates = generateCandidates("th", [
-	[{ word: "the", frequency: 10 }, { word: "other", frequency: 100 }],
+	[{ word: "the", frequency: 10 }, { word: "other", frequency: 100 }, { word: "them's", frequency: 15 }],
 	[{ word: "there", frequency: 2, ngramCount: 4, ngramContextCount: 8, ngramContextLength: 2 }],
 ], 10);
-assert.deepEqual(candidates.map(({ word }) => word), ["the", "there"], "prefix filtering and empty-result behavior");
+assert.deepEqual(candidates.map(({ word }) => word), ["the", "there"], "prefix filtering and rejection of nonstandard them's");
 assert.deepEqual(generateCandidates("zz", [[{ word: "there", frequency: 2 }]]), []);
 
 const baselineRanking = rankExperimentalCandidates([

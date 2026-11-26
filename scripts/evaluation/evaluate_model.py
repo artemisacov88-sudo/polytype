@@ -32,12 +32,18 @@ def top_prefix(words, counts, prefix, limit):
     matches = []
     for word in words[start:]:
         if not word.startswith(prefix): break
-        matches.append(word)
+        if is_valid_candidate(word): matches.append(word)
     return sorted(matches, key=lambda word: (-counts.get(word, 0), word))[:limit]
 
 
 def bound_candidates(words, unigram, limit=100):
-    return sorted(set(words), key=lambda word: (-unigram.get(word, 0), word))[:limit]
+    return sorted((word for word in set(words) if is_valid_candidate(word)),
+                  key=lambda word: (-unigram.get(word, 0), word))[:limit]
+
+
+def is_valid_candidate(word):
+    # OANC transcripts include this nonstandard object-pronoun contraction.
+    return word.lower() not in {"them's", "them’s"}
 
 
 def finish(raw):
@@ -45,18 +51,31 @@ def finish(raw):
     return {"queries": raw["queries"], "top1_accuracy": raw["top1"] / n,
             "top5_accuracy": raw["top5"] / n, "mrr": raw["mrr"] / n,
             "coverage": raw["coverage"] / n,
-            "target_candidate_coverage": raw["target_coverage"] / n}
+            "candidate_recall": raw["candidate_hits"] / n}
 
 
-def update(raw, target, ranked):
+def update(raw, target, ranked, candidate_pool):
     raw["queries"] += 1
     raw["coverage"] += bool(ranked)
+    raw["candidate_hits"] += target in candidate_pool
     if target in ranked:
         rank = ranked.index(target) + 1
-        raw["target_coverage"] += 1
         raw["mrr"] += 1 / rank
         raw["top1"] += rank == 1
         raw["top5"] += rank <= 5
+
+
+def resolved_database_path(path):
+    return str(path.resolve())
+
+
+def resolved_split_path(prepared_directory, split):
+    return str((prepared_directory / f"{split}.jsonl").resolve())
+
+
+def validate_tuning_split(split, tuning_requested):
+    if tuning_requested and split != "validation":
+        raise ValueError("parameter tuning is restricted to the validation split")
 
 
 def collocation_scores(data, previous, prefix):
@@ -67,7 +86,7 @@ def collocation_scores(data, previous, prefix):
         if not isinstance(partners, list): continue
         for partner in partners:
             if isinstance(partner, dict) and isinstance(partner.get("word"), str) \
-                    and partner["word"].startswith(prefix):
+                    and partner["word"].startswith(prefix) and is_valid_candidate(partner["word"]):
                 candidate = (float(partner.get("score", 0)), int(partner.get("count", 0)))
                 if partner["word"] not in results or candidate[0] > results[partner["word"]][0]:
                     results[partner["word"]] = candidate
@@ -81,6 +100,8 @@ def main():
     parser.add_argument("--split", choices=("validation", "test"), default="validation")
     parser.add_argument("--dictionary", type=Path, default=DICTIONARY)
     parser.add_argument("--collocations", type=Path, default=COLLOCATIONS)
+    parser.add_argument("--output", type=Path,
+                        help="Write report here instead of the historical default report path")
     parser.add_argument("--max-examples", type=int, default=10_000)
     parser.add_argument("--seed", type=int, default=491)
     parser.add_argument("--pruning-config", choices=("full", "moderate", "compact"), default="moderate")
@@ -98,9 +119,12 @@ def main():
     if not 0 <= args.discount < 1 or min(args.frequency_weight, args.reliability_weight,
                                           args.collocation_weight) < 0:
         raise SystemExit("discount must be in [0,1); ranking weights must be non-negative")
-    if (args.tune_ranking or args.tune_discount) and args.split != "validation":
-        raise SystemExit("parameter tuning is restricted to the validation split")
-    db = sqlite3.connect(f"file:{args.database}?mode=ro", uri=True)
+    try:
+        validate_tuning_split(args.split, args.tune_ranking or args.tune_discount)
+    except ValueError as error:
+        raise SystemExit(str(error)) from error
+    database_path = args.database.resolve()
+    db = sqlite3.connect(f"file:{database_path}?mode=ro", uri=True)
     db.execute("PRAGMA query_only=ON")
     unigram = dict(db.execute("SELECT next_word,count FROM ngrams WHERE order_n=1"))
     unigram_total = sum(unigram.values())
@@ -113,7 +137,8 @@ def main():
     rng = random.Random(args.seed)
     examples = []
     seen = 0
-    with (args.prepared / f"{args.split}.jsonl").open(encoding="utf-8") as source:
+    split_path = (args.prepared / f"{args.split}.jsonl").resolve()
+    with split_path.open(encoding="utf-8") as source:
         for line in source:
             record = json.loads(line)
             tokens = record["tokens"]
@@ -251,10 +276,12 @@ def main():
         else:
             collocation_impact["signal_unchanged"] += 1
         results = (trie_rank, unigram_rank, longest, iad_rank, full_rank, colloc_rank)
-        for name, ranked in zip(names, results):
-            update(raw[name]["all"], target, ranked)
-            update(raw[name][f"prefix_{prefix_group}"], target, ranked)
-            update(raw[name][f"context_{context_group}"], target, ranked)
+        candidate_pools = (trie, base_pool, longest_pool, pool, pool, colloc_pool)
+        for index, (name, ranked) in enumerate(zip(names, results)):
+            candidate_pool = candidate_pools[index]
+            update(raw[name]["all"], target, ranked, candidate_pool)
+            update(raw[name][f"prefix_{prefix_group}"], target, ranked, candidate_pool)
+            update(raw[name][f"context_{context_group}"], target, ranked, candidate_pool)
         for frequency_weight, reliability_weight, collocation_weight in tuning_grid:
             total_weight = 1 + frequency_weight + reliability_weight
             scores = {}
@@ -266,16 +293,19 @@ def main():
                          + reliability_weight * candidate_order.get(word, 0) / 3) / total_weight
                 scores[word] = (score + collocation_weight * colloc_norm[word]) / (1 + collocation_weight)
             ranked = sorted(tuning_pool, key=lambda word: (-scores[word], -unigram.get(word, 0), word))[:5]
-            update(tuned_raw[(frequency_weight, reliability_weight, collocation_weight)]["all"], target, ranked)
+            update(tuned_raw[(frequency_weight, reliability_weight, collocation_weight)]["all"],
+                   target, ranked, tuning_pool)
         for discount in discount_grid:
             scores = {word: iad_probability(word, context_data, unigram, unigram_total, discount) for word in pool}
             ranked = sorted(pool, key=lambda word: (-scores[word], -unigram.get(word, 0), word))[:5]
-            update(discount_raw[discount]["all"], target, ranked)
-            update(discount_raw[discount][f"prefix_{prefix_group}"], target, ranked)
-            update(discount_raw[discount][f"context_{context_group}"], target, ranked)
+            update(discount_raw[discount]["all"], target, ranked, pool)
+            update(discount_raw[discount][f"prefix_{prefix_group}"], target, ranked, pool)
+            update(discount_raw[discount][f"context_{context_group}"], target, ranked, pool)
 
     report = {
         "corpus": "OANC GrAF 2026-09-25", "split": args.split,
+        "database_path": resolved_database_path(args.database),
+        "split_path": str(split_path),
         "split_method": "document-level SHA-256 80/10/10; held-out documents are excluded from train DB",
         "pruning_config": args.pruning_config,
         "candidate_pruning": {"min_count": minimum, "max_successors_per_context": successor_limit or None,
@@ -299,7 +329,8 @@ def main():
         "elapsed_seconds": round(time.perf_counter() - started, 3),
     }
     suffix = "-tuning" if args.tune_ranking or args.tune_discount else ""
-    output = ROOT / f"data/experiments/evaluation-{args.split}-{args.pruning_config}-stage5{suffix}.json"
+    output = args.output or ROOT / f"data/experiments/evaluation-{args.split}-{args.pruning_config}-stage5{suffix}.json"
+    if not output.is_absolute(): output = ROOT / output
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print(json.dumps(report, indent=2, ensure_ascii=False))

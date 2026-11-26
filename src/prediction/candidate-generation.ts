@@ -5,14 +5,16 @@ export function generateCandidates(
 	prefix: string,
 	sources: readonly (readonly CandidateEvidence[])[],
 	maximum = 100,
+	normalizeWord: (word: string) => string = (word) => word.toLocaleLowerCase("en-US"),
+	isValidCandidate: (word: string) => boolean = isValidEnglishCandidate,
 ): CandidateEvidence[] {
 	if (!prefix || maximum <= 0) return [];
-	const normalizedPrefix = prefix.toLocaleLowerCase("en-US");
+	const normalizedPrefix = normalizeWord(prefix);
 	const byWord = new Map<string, CandidateEvidence>();
 	for (const source of sources) {
 		for (const candidate of source) {
-			const word = candidate.word.toLocaleLowerCase("en-US");
-			if (!word.startsWith(normalizedPrefix)) continue;
+			const word = normalizeWord(candidate.word);
+			if (!word.startsWith(normalizedPrefix) || !isValidCandidate(word)) continue;
 			const previous = byWord.get(word);
 			if (!previous) {
 				byWord.set(word, { ...candidate, word });
@@ -32,4 +34,9 @@ export function generateCandidates(
 	return [...byWord.values()]
 		.sort((left, right) => right.frequency - left.frequency || left.word.localeCompare(right.word))
 		.slice(0, maximum);
+}
+
+/** OANC transcripts contain the nonstandard object-pronoun contraction "them's". */
+export function isValidEnglishCandidate(word: string): boolean {
+	return !/^them['’]s$/u.test(word.toLocaleLowerCase("en-US"));
 }

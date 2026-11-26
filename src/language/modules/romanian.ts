@@ -6,11 +6,11 @@ export const romanian: LanguageModule = {
 
 	rules: {
 		tokenize(text: string): string[] {
-			return text.match(/[a-zăâîșț]+/giu) ?? [];
+			return text.normalize("NFC").match(/[a-zăâîșțşţ]+/giu) ?? [];
 		},
 
 		normalizeWord(word: string): string {
-			return word.toLocaleLowerCase("ro-RO");
+			return word.normalize("NFC").toLocaleLowerCase("ro-RO").replace(/ş/g, "ș").replace(/ţ/g, "ț");
 		},
 	},
 };

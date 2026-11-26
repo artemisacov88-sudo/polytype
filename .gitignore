@@ -1,8 +1,11 @@
 node_modules/
+__pycache__/
+*.py[cod]
 .DS_Store
 main.js
 *.map
 /data/english-words.json
 /data/english-collocations.json
+/data/multilingual/
 /local-corpora/
 /data/experiments/

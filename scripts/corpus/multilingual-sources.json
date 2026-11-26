@@ -1,0 +1,62 @@
+{
+  "checked_at": "2026-11-23",
+  "selected_source": "Tatoeba",
+  "source_release": "weekly exports with Last-Modified 2026-11-21 UTC",
+  "license": "CC BY 2.0 FR",
+  "license_url": "https://creativecommons.org/licenses/by/2.0/fr/",
+  "official_terms_url": "https://tatoeba.org/en/downloads",
+  "official_processing_guidance_url": "https://en.wiki.tatoeba.org/articles/show/using-the-tatoeba-corpus",
+  "conditions": [
+    "Tatoeba states that the textual sentence exports are released under CC BY 2.0 FR and permits reuse, modification, and redistribution with attribution.",
+    "Credit the sentence authors, identify Tatoeba as the source, link the license, and identify the tokenization, filtering, deduplication, splitting, and statistical aggregation as changes.",
+    "Distribute derived dictionaries and language-model assets under CC BY 2.0 FR with the contributor attribution files; do not distribute source sentence text in the production package."
+  ],
+  "downloaded_at": "2026-11-23",
+  "files": [
+    {
+      "name": "sentences_detailed.csv",
+      "url": "https://downloads.tatoeba.org/exports/sentences_detailed.tar.bz2",
+      "last_modified": "2026-11-21T06:14:01Z",
+      "bytes": 304892966,
+      "sha256": "98956f8d7c01e3a1e315d89e4ba0b47772421343306bdf3902bb2ccd45bfd950",
+      "local_path": "local-corpora/tatoeba/snapshot-2026-11-21/sentences_detailed.tar.bz2"
+    },
+    {
+      "name": "sentences_base.csv",
+      "url": "https://downloads.tatoeba.org/exports/sentences_base.tar.bz2",
+      "last_modified": "2026-11-21T06:28:49Z",
+      "bytes": 64115994,
+      "sha256": "8de112f9f4678ae122bd5cd09608e9e62027d97afbc5f76361f34af854b2a3fc",
+      "local_path": "local-corpora/tatoeba/snapshot-2026-11-21/sentences_base.tar.bz2"
+    }
+  ],
+  "languages": {
+    "ru": { "tatoeba_iso_639_3": "rus", "corpus_name": "Tatoeba Russian" },
+    "de": { "tatoeba_iso_639_3": "deu", "corpus_name": "Tatoeba German" },
+    "ro": { "tatoeba_iso_639_3": "ron", "corpus_name": "Tatoeba Romanian" }
+  },
+  "preprocessing_policy": {
+    "sentence_family_split": "SHA-256 of source/base sentence ID, deterministic 80/10/10; translations with the same source remain in one split",
+    "filters": "2 to 40 tokens; language-specific runtime tokenizer and normalization; NFC; deduplicate identical normalized sentences",
+    "attribution": "one sorted contributor-name list per language, derived from training sentences only",
+    "known_limitations": "Tatoeba is community-contributed sentence material and includes translations; official guidance warns that some sentences may be unnatural or need correction. Validation/test measures performance only on this source domain."
+  },
+  "considered_alternatives": [
+    {
+      "name": "Mozilla Common Voice Scripted Speech 27.0",
+      "license": "CC0-1.0",
+      "official_url": "https://commonvoice.mozilla.org/datasets",
+      "release_metadata_url": "https://github.com/common-voice/cv-dataset",
+      "checked_at": "2026-11-23",
+      "language_archive_sizes": { "de": "34.82 GB", "ru": "6.61 GB", "ro": "1.08 GB" },
+      "decision": "Not selected: these are ASR scripted-speech archives with large audio payloads, and the domain is read prompts rather than general written text. The CC0 license is permissive, but the dataset shape is a poorer fit than Tatoeba's text-only language-tool export."
+    },
+    {
+      "name": "CoRoLa Reference Corpus of Contemporary Romanian",
+      "license_or_access": "Public query interfaces; source site says the corpus is not available for download, in whole or in part.",
+      "official_url": "https://korap.racai.ro/",
+      "checked_at": "2026-11-23",
+      "decision": "Not selected: the model-training workflow requires a downloadable text corpus."
+    }
+  ]
+}

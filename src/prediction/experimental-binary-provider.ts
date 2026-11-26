@@ -1,4 +1,4 @@
-import type { PredictionProvider, PredictionRequest } from "./types";
+import { getMaxSuggestions, type PredictionProvider, type PredictionRequest } from "./types";
 import { DictionaryPredictionProvider } from "./provider";
 import type { CandidateEvidence } from "./ranking";
 import { generateCandidates } from "./candidate-generation";
@@ -160,7 +160,7 @@ export class ExperimentalBinaryPredictionProvider implements PredictionProvider 
 			}
 		}
 		const experimental = rankExperimentalCandidates(scoredCandidates, model.maxWordFrequency)
-			.slice(0, 5)
+			.slice(0, getMaxSuggestions(request))
 			.map(({ word }) => word);
 		return { baseline, experimental, algorithm: actualAlgorithm };
 	}
@@ -175,7 +175,7 @@ export class ExperimentalBinaryPredictionProvider implements PredictionProvider 
 	}
 }
 
-export const OANC_ABSOLUTE_DISCOUNT = 0.25;
+export const OANC_ABSOLUTE_DISCOUNT = 0.75;
 
 function isCollocationData(value: unknown): value is CollocationData {
 	if (!value || typeof value !== "object" || Array.isArray(value)) return false;

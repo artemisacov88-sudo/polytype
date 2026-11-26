@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { DictionaryPredictionProvider } from "../prediction/provider";
+import { DictionaryPredictionProvider, OptInPredictionProvider } from "../prediction/provider";
+import type { PredictionRequest } from "../prediction/types";
 import type { PredictionDataAsset } from "../prediction/data-source";
 
 const words = JSON.stringify([
@@ -20,6 +21,19 @@ async function testLanguageLazyLoading(): Promise<void> {
 	});
 	assert.deepEqual(await provider.predict({ language: "ru", context: [], currentWord: "пр" }), []);
 	assert.equal(calls, 0, "non-English queries do not load English files");
+}
+
+async function testConfigurableSuggestionCount(): Promise<void> {
+	const provider = new DictionaryPredictionProvider(async (asset) => asset === "english-words.json"
+		? JSON.stringify(["world", "word", "work", "wonder", "worry"].map((word, index) => ({
+			word, frequency: 100 - index, pos: "X",
+		})))
+		: "{}");
+	const request = { language: "en" as const, context: [], currentWord: "wo", maxSuggestions: 3 };
+	assert.equal((await provider.predict(request)).length, 3, "the English Provider returns the configured count");
+	assert.equal((await provider.predict({ ...request, maxSuggestions: 1 })).length, 1);
+	assert.equal((await provider.predict({ ...request, maxSuggestions: 99 })).length, 5,
+		"invalid request limits safely retain the legacy five-result default");
 }
 
 async function testConcurrentDeduplication(): Promise<void> {
@@ -82,12 +96,44 @@ async function testMalformedWordJsonCanRetry(): Promise<void> {
 	assert.equal(wordReads, 2);
 }
 
+async function testOptInProviderKeepsStandardFallback(): Promise<void> {
+	const request: PredictionRequest = { language: "en", context: ["i"], currentWord: "th" };
+	const standard = { predict: async (request: PredictionRequest) => request.language === "de" ? ["der"] : ["the"] };
+	let optionalCalls = 0;
+	let enabled = false;
+	let failOptional = false;
+	const optional = { predict: async () => {
+		optionalCalls++;
+		if (failOptional) throw new Error("optional model unavailable");
+		return ["there"];
+	} };
+	const provider = new OptInPredictionProvider(standard, optional, () => enabled);
+	assert.deepEqual(await provider.predict(request), ["the"]);
+	assert.equal(optionalCalls, 0, "disabled optional provider is not called");
+	enabled = true;
+	assert.deepEqual(await provider.predict(request), ["there"]);
+	failOptional = true;
+	const originalConsoleError = console.error;
+	console.error = () => undefined;
+	try {
+		assert.deepEqual(await provider.predict(request), ["the"], "optional provider errors fall back to standard predictions");
+	} finally {
+		console.error = originalConsoleError;
+	}
+	const optionalCallsBeforeGerman = optionalCalls;
+	assert.deepEqual(await provider.predict({ language: "de", context: [], currentWord: "d" }), ["der"]);
+	assert.equal(optionalCalls, optionalCallsBeforeGerman,
+		"the English experimental provider does not intercept the new German baseline");
+}
+
 async function main(): Promise<void> {
 	await testLanguageLazyLoading();
+	await testConfigurableSuggestionCount();
 	await testConcurrentDeduplication();
 	await testRetryAfterMissingWordFile();
 	await testMalformedCollocationsDoNotBlockTrie();
 	await testMalformedWordJsonCanRetry();
+	await testOptInProviderKeepsStandardFallback();
 	console.log("Provider and local-data loading tests passed.");
 }
 

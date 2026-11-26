@@ -1,8 +1,11 @@
+import type { LanguageId } from "../language/types";
+
 export const OANC_NGRAM_FORMAT_VERSION = 1;
 export const OANC_NGRAM_BINARY_MAGIC = "PTNG";
 
 export interface NGramModelManifest {
 	format_version: number;
+	language?: LanguageId;
 	corpus: string;
 	configuration: string;
 	min_count: number;
@@ -45,6 +48,9 @@ const MAX_LOOKUP_LIMIT = 100;
 const CONTEXT_STATS_MAGIC = "PTGS";
 const CONTEXT_STATS_VERSION = 1;
 const CONTEXT_STATS_HEADER_SIZE = 24;
+const PARSE_YIELD_INTERVAL = 32_768;
+export type ParseYield = () => Promise<void>;
+const yieldToEventLoop: ParseYield = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 /** Indexed view over full train-only unigram and context statistics. */
 export class OancNGramContextStatistics {
@@ -134,6 +140,7 @@ export class OancBinaryNGramModel {
 		sectionOffsets: number[],
 		sectionRecordSizes: number[],
 		recordCounts: number[],
+		private readonly normalizeWord: (word: string) => string = normalizeEnglish,
 	) {
 		this.view = new DataView(bytes);
 		this.vocabulary = vocabulary;
@@ -157,12 +164,12 @@ export class OancBinaryNGramModel {
 	}
 
 	getWordFrequency(word: string): number {
-		const id = this.wordIds.get(normalizeEnglish(word));
+		const id = this.wordIds.get(this.normalizeWord(word));
 		return id === undefined ? 0 : this.contextStatistics?.getUnigramFrequency(id) ?? this.wordFrequencies[id];
 	}
 
 	getWordId(word: string): number | undefined {
-		return this.wordIds.get(normalizeEnglish(word));
+		return this.wordIds.get(this.normalizeWord(word));
 	}
 
 	getWordProbability(word: string): number {
@@ -197,7 +204,7 @@ export class OancBinaryNGramModel {
 	}
 
 	hasWord(word: string): boolean {
-		return this.wordIds.has(normalizeEnglish(word));
+		return this.wordIds.has(this.normalizeWord(word));
 	}
 
 	hasContext(contextWords: readonly string[]): boolean {
@@ -221,12 +228,12 @@ export class OancBinaryNGramModel {
 	): NGramLookupResult {
 		const safeLimit = normalizeLimit(limit);
 		if (safeLimit === 0) return { contextFrequency: 0, continuations: [] };
-		return this.lookup(contextWords, normalizeEnglish(prefix), safeLimit);
+		return this.lookup(contextWords, this.normalizeWord(prefix), safeLimit);
 	}
 
 	/** Full train unigram candidates, including types omitted by PTNG pruning. */
 	lookupFullUnigrams(prefix: string, limit = 5): NGramLookupResult {
-		return this.lookupUnigrams(normalizeEnglish(prefix), normalizeLimit(limit), true);
+		return this.lookupUnigrams(this.normalizeWord(prefix), normalizeLimit(limit), true);
 	}
 
 	private lookup(
@@ -283,7 +290,7 @@ export class OancBinaryNGramModel {
 		const words = contextWords.slice(-3);
 		const ids: number[] = [];
 		for (const word of words) {
-			const id = this.wordIds.get(normalizeEnglish(word));
+			const id = this.wordIds.get(this.normalizeWord(word));
 			if (id === undefined) return null;
 			ids.push(id);
 		}
@@ -324,6 +331,9 @@ export class NGramModelLoader {
 		private readonly manifestPath = DEFAULT_OANC_NGRAM_MANIFEST_PATH,
 		private readonly digest: NGramSha256 = sha256,
 		private readonly readContextStatistics?: NGramContextStatisticsReader,
+		private readonly normalizeWord: (word: string) => string = normalizeEnglish,
+		private readonly expectedLanguage?: LanguageId,
+		private readonly yieldControl: ParseYield = yieldToEventLoop,
 	) {}
 
 	load(): Promise<OancBinaryNGramModel> {
@@ -335,6 +345,11 @@ export class NGramModelLoader {
 			});
 		}
 		return this.pending;
+	}
+
+	/** Release the loader's retained model so a language switch can free memory. */
+	reset(): void {
+		this.pending = undefined;
 	}
 
 	private async loadOnce(): Promise<OancBinaryNGramModel> {
@@ -349,6 +364,9 @@ export class NGramModelLoader {
 			throw new NGramModelLoadError(`Could not read the local OANC binary model or manifest: ${describe(error)}`);
 		}
 		const manifest = parseManifest(manifestText);
+		if (this.expectedLanguage && manifest.language !== this.expectedLanguage) {
+			throw new NGramModelLoadError(`Expected ${this.expectedLanguage} model, received ${String(manifest.language)}`);
+		}
 		if (bytes.byteLength !== manifest.binary_bytes) {
 			throw new NGramModelLoadError(`Binary model size mismatch: expected ${manifest.binary_bytes}, received ${bytes.byteLength}`);
 		}
@@ -356,7 +374,7 @@ export class NGramModelLoader {
 		if (actualHash.toLowerCase() !== manifest.binary_sha256.toLowerCase()) {
 			throw new NGramModelLoadError("Binary model SHA-256 does not match its manifest");
 		}
-		const model = parseBinaryModel(bytes, manifest);
+		const model = await parseBinaryModel(bytes, manifest, this.normalizeWord, this.yieldControl);
 		if (manifest.context_statistics_file) {
 			if (!this.readContextStatistics) throw new NGramModelLoadError("Context statistics are required but no local reader was provided");
 			const base = this.manifestPath.slice(0, this.manifestPath.lastIndexOf("/") + 1);
@@ -374,7 +392,7 @@ export class NGramModelLoader {
 			if (statisticsHash.toLowerCase() !== manifest.context_statistics_sha256?.toLowerCase()) {
 				throw new NGramModelLoadError("Context statistics SHA-256 does not match its manifest");
 			}
-			model.attachContextStatistics(parseContextStatistics(statisticsBytes, manifest));
+			model.attachContextStatistics(await parseContextStatistics(statisticsBytes, manifest, this.yieldControl));
 		}
 		return model;
 	}
@@ -391,6 +409,9 @@ export function parseManifest(text: string): NGramModelManifest {
 		throw new NGramModelLoadError("Binary model manifest must be an object");
 	}
 	const manifest = value as Partial<NGramModelManifest>;
+	if (manifest.language !== undefined && !["ru", "en", "de", "ro"].includes(manifest.language)) {
+		throw new NGramModelLoadError("Binary model manifest has an unsupported language");
+	}
 	if (manifest.format_version !== OANC_NGRAM_FORMAT_VERSION) {
 		throw new NGramModelLoadError(`Unsupported binary model format version: ${String(manifest.format_version)}`);
 	}
@@ -426,7 +447,11 @@ export function parseManifest(text: string): NGramModelManifest {
 	return manifest as NGramModelManifest;
 }
 
-export function parseContextStatistics(bytes: ArrayBuffer, manifest: NGramModelManifest): OancNGramContextStatistics {
+export async function parseContextStatistics(
+	bytes: ArrayBuffer,
+	manifest: NGramModelManifest,
+	yieldControl: ParseYield = yieldToEventLoop,
+): Promise<OancNGramContextStatistics> {
 	if (bytes.byteLength < CONTEXT_STATS_HEADER_SIZE) throw new NGramModelLoadError("Context statistics file is shorter than its header");
 	const view = new DataView(bytes);
 	for (let index = 0; index < CONTEXT_STATS_MAGIC.length; index++) {
@@ -475,12 +500,18 @@ export function parseContextStatistics(bytes: ArrayBuffer, manifest: NGramModelM
 				throw new NGramModelLoadError("Context statistics contain impossible totals or continuation counts");
 			}
 			previous = context;
+			if ((index + 1) % PARSE_YIELD_INTERVAL === 0) await yieldControl();
 		}
 	}
 	return new OancNGramContextStatistics(bytes, vocabularyCount, recordCounts);
 }
 
-export function parseBinaryModel(bytes: ArrayBuffer, manifest: NGramModelManifest): OancBinaryNGramModel {
+export async function parseBinaryModel(
+	bytes: ArrayBuffer,
+	manifest: NGramModelManifest,
+	normalizeWord: (word: string) => string = normalizeEnglish,
+	yieldControl: ParseYield = yieldToEventLoop,
+): Promise<OancBinaryNGramModel> {
 	if (bytes.byteLength < HEADER_SIZE) throw new NGramModelLoadError("Binary model is shorter than its header");
 	const view = new DataView(bytes);
 	for (let index = 0; index < OANC_NGRAM_BINARY_MAGIC.length; index++) {
@@ -519,12 +550,13 @@ export function parseBinaryModel(bytes: ArrayBuffer, manifest: NGramModelManifes
 			throw new NGramModelLoadError(`Invalid UTF-8 vocabulary entry: ${describe(error)}`);
 		}
 		offset += byteLength;
-		if (!word || word !== normalizeEnglish(word) || wordIds.has(word) || (id > 0 && word <= previousWord)) {
+		if (!word || word !== normalizeWord(word) || wordIds.has(word) || (id > 0 && word <= previousWord)) {
 			throw new NGramModelLoadError("Binary vocabulary is not unique, lowercase, and lexically sorted");
 		}
 		vocabulary.push(word);
 		wordIds.set(word, id);
 		previousWord = word;
+		if ((id + 1) % PARSE_YIELD_INTERVAL === 0) await yieldControl();
 	}
 
 	const sectionOffsets: number[] = [];
@@ -543,8 +575,8 @@ export function parseBinaryModel(bytes: ArrayBuffer, manifest: NGramModelManifes
 
 	const wordFrequencies = new Uint32Array(vocabularyCount);
 	for (let order = 1; order <= 4; order++) {
-		validateOrderRecords(view, order, sectionOffsets[order - 1], sectionRecordSizes[order - 1],
-			recordCounts[order - 1], vocabularyCount, manifest.max_successors_per_context);
+		await validateOrderRecords(view, order, sectionOffsets[order - 1], sectionRecordSizes[order - 1],
+			recordCounts[order - 1], vocabularyCount, manifest.max_successors_per_context, yieldControl);
 		if (order === 1) {
 			for (let index = 0; index < recordCounts[0]; index++) {
 				const at = sectionOffsets[0] + index * sectionRecordSizes[0];
@@ -554,10 +586,10 @@ export function parseBinaryModel(bytes: ArrayBuffer, manifest: NGramModelManifes
 		}
 	}
 	return new OancBinaryNGramModel(bytes, vocabulary, wordIds, wordFrequencies,
-		sectionOffsets, sectionRecordSizes, recordCounts);
+		sectionOffsets, sectionRecordSizes, recordCounts, normalizeWord);
 }
 
-function validateOrderRecords(
+async function validateOrderRecords(
 	view: DataView,
 	order: number,
 	sectionOffset: number,
@@ -565,7 +597,8 @@ function validateOrderRecords(
 	recordCount: number,
 	vocabularyCount: number,
 	maxSuccessors: number | null,
-): void {
+	yieldControl: ParseYield,
+): Promise<void> {
 	let previousContext: number[] | undefined;
 	let previousCount = Number.MAX_SAFE_INTEGER;
 	let previousWordId = -1;
@@ -605,6 +638,7 @@ function validateOrderRecords(
 		if (order > 1 && maxSuccessors !== null && successorsInContext > maxSuccessors) {
 			throw new NGramModelLoadError(`${order}-gram context exceeds the manifest successor limit`);
 		}
+		if ((index + 1) % PARSE_YIELD_INTERVAL === 0) await yieldControl();
 	}
 }
 

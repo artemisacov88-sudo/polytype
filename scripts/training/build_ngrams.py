@@ -93,7 +93,8 @@ def read_rows(db_path: Path, minimum: int, max_successors: int):
         db.close()
 
 
-def export_config(db_path: Path, name: str, minimum: int, max_successors: int, out_root: Path) -> dict:
+def export_config(db_path: Path, name: str, minimum: int, max_successors: int, out_root: Path,
+                  corpus_name: str = "OANC GrAF 2026-09-25", language: str | None = None) -> dict:
     db = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
     vocab = [row[0] for row in db.execute("SELECT next_word FROM ngrams WHERE order_n=1 ORDER BY next_word")]
     db.close()
@@ -105,6 +106,21 @@ def export_config(db_path: Path, name: str, minimum: int, max_successors: int, o
     json_dir.mkdir(parents=True, exist_ok=True)
     bin_dir.mkdir(parents=True, exist_ok=True)
     json_path, binary_path = json_dir / "model.json", bin_dir / "model.ptng"
+    word_index_path = target / "words.json"
+    dictionary_db = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+    with word_index_path.open("w", encoding="utf-8", newline="\n") as f:
+        f.write("[")
+        first = True
+        try:
+            for word, frequency in dictionary_db.execute(
+                    "SELECT next_word,count FROM ngrams WHERE order_n=1 ORDER BY next_word"):
+                if not first: f.write(",")
+                json.dump({"word": word, "frequency": frequency, "pos": "X"}, f,
+                          ensure_ascii=False, separators=(",", ":"))
+                first = False
+            f.write("]\n")
+        finally:
+            dictionary_db.close()
     t0 = time.perf_counter()
     with json_path.open("w", encoding="utf-8", newline="\n") as f:
         f.write('{"version":1,"vocabulary":')
@@ -134,12 +150,16 @@ def export_config(db_path: Path, name: str, minimum: int, max_successors: int, o
     binary_seconds = time.perf_counter() - t0
     stats_path = bin_dir / "context-stats.ptgs"
     stats_counts, stats_seconds = export_context_statistics(db_path, stats_path, ids, minimum)
-    manifest = {"format_version": FORMAT_VERSION, "corpus": "OANC GrAF 2026-09-25",
+    manifest = {"format_version": FORMAT_VERSION, "corpus": corpus_name,
                 "configuration": name, "min_count": minimum, "max_successors_per_context": max_successors or None,
                 "vocabulary_count": len(vocab), "record_counts": counts,
+                "dictionary_file": "words.json", "dictionary_bytes": word_index_path.stat().st_size,
+                "dictionary_sha256": sha256_file(word_index_path),
                 "json_bytes": json_path.stat().st_size, "binary_bytes": binary_path.stat().st_size,
                 "json_export_seconds": round(json_seconds, 3), "binary_export_seconds": round(binary_seconds, 3),
                 "json_sha256": sha256_file(json_path), "binary_sha256": sha256_file(binary_path)}
+    if language:
+        manifest["language"] = language
     manifest.update({"context_statistics_file": "binary/context-stats.ptgs",
                      "context_statistics_version": STATS_VERSION,
                      "context_statistics_context_counts": stats_counts,
@@ -209,6 +229,8 @@ def main() -> None:
     parser.add_argument("--batch-size", type=int, default=50_000)
     parser.add_argument("--skip-train", action="store_true")
     parser.add_argument("--only-config", choices=tuple(CONFIGS))
+    parser.add_argument("--corpus-name", default="OANC GrAF 2026-09-25")
+    parser.add_argument("--language", choices=("ru", "en", "de", "ro"))
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=True)
     report_path = args.output / "build-report.json"
@@ -233,7 +255,7 @@ def main() -> None:
                        "unique_ngrams": order_counts, "database_bytes": args.database.stat().st_size})
     configs = {args.only_config: CONFIGS[args.only_config]} if args.only_config else CONFIGS
     for name, (minimum, cap) in configs.items():
-        export_config(args.database, name, minimum, cap, args.output)
+        export_config(args.database, name, minimum, cap, args.output, args.corpus_name, args.language)
     manifests = []
     for name in CONFIGS:
         manifest_path = args.output / name / "manifest.json"
