@@ -525,7 +525,7 @@ def main():
                       [gc[g] for g in GENRES])
     rows_f.sort(key=lambda r: (-r[2], r[0], r[1]))
     with open_out(os.path.join(BASE, 'oanc_wordfreq_written.csv'), newline='') as fh:
-        wr = csv.writer(fh)
+        wr = csv.writer(fh, lineterminator="\n")
         wr.writerow(['lemma', 'pos', 'count', 'per_million', 'genres_present'] + ['n_' + g for g in GENRES])
         wr.writerows(rows_f)
 
@@ -637,7 +637,7 @@ def main():
                 sp.update(re.findall(r"[a-z]+(?:[-'][a-z]+)*", line.lower()))
     sp_total = sum(sp.values())
     with open_out(os.path.join(BASE, 'oanc_wordfreq_spoken.csv'), newline='') as fh:
-        wr = csv.writer(fh)
+        wr = csv.writer(fh, lineterminator="\n")
         wr.writerow(['word', 'count', 'per_million'])
         for w, c in sp.most_common():
             if c >= 5:
