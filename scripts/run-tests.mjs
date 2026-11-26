@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -6,10 +7,15 @@ import { fileURLToPath } from "node:url";
 import { build } from "esbuild";
 
 const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
+const oancTestAssets = [
+	"data/experiments/moderate/binary/model.ptng",
+	"data/experiments/moderate/manifest.json",
+	"data/experiments/moderate/json/model.json",
+	"data/experiments/moderate/binary/context-stats.ptgs",
+];
 const tests = [
 	"src/tests/trie-test.ts",
 	"src/tests/ngram-test.ts",
-	"src/tests/ngram-model-loader-test.ts",
 	"src/tests/prediction-components-test.ts",
 	"src/tests/ranking-test.ts",
 	"src/tests/collocations-test.ts",
@@ -30,6 +36,13 @@ const tests = [
 	"src/tests/personal-storage-test.ts",
 	"src/tests/personal-learning-integration-test.ts",
 ];
+
+const missingOancTestAssets = oancTestAssets.filter((asset) => !existsSync(resolve(root, asset)));
+if (missingOancTestAssets.length === 0) {
+	tests.splice(2, 0, "src/tests/ngram-model-loader-test.ts");
+} else {
+	console.log(`[PolyType] Skipping OANC model integration test; local experimental assets are missing: ${missingOancTestAssets.join(", ")}`);
+}
 
 async function main() {
 	const outputDirectory = await mkdtemp(join(tmpdir(), "polytype-tests-"));

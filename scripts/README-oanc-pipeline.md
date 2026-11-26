@@ -20,6 +20,8 @@ are included as language modules and are described in
 - Do not add the large experiment files to the normal package automatically.
 
 Training is offline and does not affect the Obsidian runtime or normal Provider.
+The OANC integration test uses ignored local model exports; `npm test` runs it when
+all four moderate model files are present and otherwise reports an explicit skip.
 
 ## Source and privacy
 
