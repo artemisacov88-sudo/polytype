@@ -1,6 +1,6 @@
 {
   "name": "polytype",
-  "version": "0.1.0",
+  "version": "0.1.0-beta.2",
   "private": true,
   "scripts": {
 		"build": "node esbuild.config.mjs && node scripts/check-package.mjs",

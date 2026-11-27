@@ -10,6 +10,7 @@ const requiredFiles = [
 	"styles.css",
 	"data/english-words.json",
 	"data/english-collocations.json",
+	"data/english-ATTRIBUTION.txt",
 	...["ru", "de", "ro"].flatMap((language) => [
 		`data/multilingual/${language}/words.json`,
 		`data/multilingual/${language}/manifest.json`,
@@ -45,6 +46,12 @@ async function main() {
 	if (!collocations || typeof collocations !== "object" || Array.isArray(collocations)
 		|| Object.keys(collocations).length === 0) {
 		throw new Error("data/english-collocations.json is empty or has an invalid structure");
+	}
+	const englishAttribution = await readFile(resolve(root, "data/english-ATTRIBUTION.txt"), "utf8");
+	if (!englishAttribution.includes("Lingevo (lingevo.com)")
+		|| !englishAttribution.includes("Open American National Corpus (OANC)")
+		|| !englishAttribution.includes("https://anc.org/data/oanc/")) {
+		throw new Error("data/english-ATTRIBUTION.txt is missing required OANC/Lingevo credits");
 	}
 
 	for (const language of ["ru", "de", "ro"]) {

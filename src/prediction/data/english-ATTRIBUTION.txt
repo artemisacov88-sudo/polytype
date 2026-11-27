@@ -1,0 +1,7 @@
+English frequency and collocation data in PolyType is derived from the OANC_GrAF release (September 2026).
+
+The source data was offered to the American National Corpus project by Lingevo (lingevo.com).
+The derived data is offered under the same terms as the OANC (unrestricted use, including commercial use).
+
+When hosting or redistributing these derived data, credit Lingevo (lingevo.com) and include:
+"Contains data derived from the Open American National Corpus (OANC), https://anc.org/data/oanc/."

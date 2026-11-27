@@ -7,6 +7,7 @@ const watch = process.argv.includes("--watch");
 const dataFiles = [
   ["src/prediction/data/english-words.json", "data/english-words.json"],
   ["src/prediction/data/english-collocations.json", "data/english-collocations.json"],
+  ["src/prediction/data/english-ATTRIBUTION.txt", "data/english-ATTRIBUTION.txt"],
   ...["ru", "de", "ro"].flatMap((language) => [
     [`src/prediction/data/multilingual/${language}/words.json`, `data/multilingual/${language}/words.json`],
     [`src/prediction/data/multilingual/${language}/manifest.json`, `data/multilingual/${language}/manifest.json`],
