@@ -1,10 +1,20 @@
 {
   "name": "polytype",
-  "version": "0.1.0",
+  "version": "0.1.0-beta.2",
   "private": true,
   "scripts": {
-    "build": "node esbuild.config.mjs",
-    "dev": "node esbuild.config.mjs --watch"
+		"build": "node esbuild.config.mjs && node scripts/check-package.mjs",
+		"dev": "node esbuild.config.mjs --watch",
+		"typecheck": "tsc --noEmit",
+		"test": "node scripts/run-tests.mjs",
+    "check:package": "node scripts/check-package.mjs",
+    "oanc:download": "python3 scripts/corpus/download_oanc.py",
+    "oanc:prepare": "python3 scripts/corpus/prepare_oanc.py",
+    "oanc:train": "python3 scripts/training/build_ngrams.py",
+    "oanc:benchmark": "node --expose-gc scripts/evaluation/benchmark_formats.mjs",
+    "oanc:evaluate": "python3 scripts/evaluation/evaluate_model.py",
+    "multilingual:evaluate": "node scripts/evaluation/evaluate-multilingual.mjs",
+    "multilingual:benchmark": "node scripts/evaluation/benchmark-multilingual-runtime.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

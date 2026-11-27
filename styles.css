@@ -11,3 +11,15 @@
 .polytype-suggestion {
 	padding: 0.25rem 0.5rem;
 }
+
+.polytype-spelling-error {
+	text-decoration: underline wavy var(--text-error);
+	text-decoration-thickness: 1px;
+	text-underline-offset: 2px;
+}
+
+.polytype-spelling-tooltip {
+	display: flex;
+	gap: 0.25rem;
+	padding: 0.35rem;
+}

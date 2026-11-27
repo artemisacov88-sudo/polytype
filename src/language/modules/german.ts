@@ -10,7 +10,7 @@ export const german: LanguageModule = {
 		},
 
 		normalizeWord(word: string): string {
-			return word.toLocaleLowerCase("de-DE");
+			return word.normalize("NFC").toLocaleLowerCase("de-DE");
 		},
 	},
 };
